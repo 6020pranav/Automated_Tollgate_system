@@ -1,0 +1,45 @@
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <SMTPClient.h>
+
+const char* ssid = "your_SSID";
+const char* password = "your_PASSWORD";
+
+SMTPClient smtp;
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  
+  Serial.println("Connected to WiFi");
+
+  pinMode(13, INPUT); // Pin to receive signal from Arduino
+}
+
+void loop() {
+  if (digitalRead(13) == HIGH) {
+    sendEmail();
+  }
+}
+
+void sendEmail() {
+  smtp.begin("smtp.yourprovider.com", 465, "your_email@example.com", "your_password");
+  
+  smtp.setFrom("your_email@example.com");
+  smtp.setTo("recipient@example.com");
+  smtp.setSubject("Toll Gate Opened");
+  smtp.setMessage("The toll gate has been opened for a vehicle.", false);
+
+  if (smtp.send()) {
+    Serial.println("Email sent successfully");
+  } else {
+    Serial.println("Failed to send email");
+  }
+
+  smtp.end();
+}
