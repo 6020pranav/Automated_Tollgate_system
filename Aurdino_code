@@ -1,0 +1,44 @@
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+
+TinyGPSPlus gps;
+SoftwareSerial gpsSerial(4, 3); // RX, TX for GPS module
+
+const int gatePin = 8; // Relay control pin
+const int emailTriggerPin = 7; // Pin to signal ESP32
+const double fenceLat = 37.7749;
+const double fenceLon = -122.4194;
+const double fenceRadius = 0.0005;
+
+void setup() {
+  Serial.begin(9600);
+  gpsSerial.begin(9600);
+  pinMode(gatePin, OUTPUT);
+  pinMode(emailTriggerPin, OUTPUT);
+  digitalWrite(gatePin, LOW); // Gate initially closed
+}
+
+void loop() {
+  while (gpsSerial.available() > 0) {
+    gps.encode(gpsSerial.read());
+
+    if (gps.location.isValid()) {
+      double currentLat = gps.location.lat();
+      double currentLon = gps.location.lng();
+
+      if (isWithinGeofence(currentLat, currentLon)) {
+        digitalWrite(gatePin, HIGH); // Open gate
+        digitalWrite(emailTriggerPin, HIGH); // Notify ESP32
+        delay(1000); // Wait for email to send
+        digitalWrite(emailTriggerPin, LOW);
+      } else {
+        digitalWrite(gatePin, LOW); // Close gate
+      }
+    }
+  }
+}
+
+bool isWithinGeofence(double lat, double lon) {
+  double distance = sqrt(pow(lat - fenceLat, 2) + pow(lon - fenceLon, 2));
+  return distance <= fenceRadius;
+}
